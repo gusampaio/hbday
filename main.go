@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 	"hbday/web-service-gin/models"
 	"net/http"
 	"time"
+	_ "github.com/lib/pq"
 )
 
 const (
-	host     = "localhost"
+	host     = "postgres"
 	port     = 5432
 	user     = "gusampaio"
 	password = "gusampaio_pass"
@@ -28,7 +28,7 @@ func main() {
 	router.GET("/hello/:username", getPersonByUsername)
 	router.GET("/hello/all", getAll)
 	router.PUT("/hello/:username", postPerson)
-	router.Run("localhost:8080") //nolint:errcheck
+	router.Run("0.0.0.0:8080") //nolint:errcheck
 }
  func connectDb() {
 	 var err error
