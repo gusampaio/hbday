@@ -9,10 +9,11 @@ import (
 	"net/http"
 	"time"
 	_ "github.com/lib/pq"
+	"unicode"
 )
 
 const (
-	host     = "postgres"
+	host     = "localhost"
 	port     = 5432
 	user     = "gusampaio"
 	password = "gusampaio_pass"
@@ -30,6 +31,7 @@ func main() {
 	router.PUT("/hello/:username", postPerson)
 	router.Run("0.0.0.0:8080") //nolint:errcheck
 }
+
  func connectDb() {
 	 var err error
 	 // connection string
@@ -51,7 +53,6 @@ func main() {
 	 models.CreateTable()
  }
 
-
 func getAll(c *gin.Context) {
 	all, err := models.GetAllPeople()
 	if err != nil {
@@ -63,19 +64,35 @@ func getAll(c *gin.Context) {
 // getPersonByUsername locates the album whose ID value matches the id
 // parameter sent by the client, then returns that album as a response.
 func getPersonByUsername(c *gin.Context) {
+	// checking if username already exist
 	username := c.Param("username")
+	messageSlice := make(map[string]string)
 	if !exist(username){
 		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "username not found"})
 		return
 	}
 
+	// Retrieving username in the database
 	newP, err := models.GetPerson(username)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, newP)
+	days, err := daysToBirthday(newP.DateOfBirth)
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	if days < 1 {
+		messageSlice["message"] = "Hello " + newP.Username + "! Happy Birthday!"
+
+	} else {
+		messageSlice["message"] = fmt.Sprintf("Hello %s! Your Bithday is in %d days", newP.Username, days)
+	}
+	c.IndentedJSON(http.StatusOK, messageSlice)
+	return
 }
 
 // postPerson adds a person from JSON received in the request body.
@@ -85,29 +102,36 @@ func postPerson(c *gin.Context) {
 	// Call BindJSON to bind the received JSON to
 	// newPerson.
 	if err := c.BindJSON(&newPerson); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
+	if !isLetter(c.Param("username")){
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "invalid username"})
+		return
+	}
 	// Including username param as not being passed in the JSON
-	newPerson.Username = c.Param("username")
+	newPerson.Username = c.Param("username");
 
+	// User already exist
 	if exist(newPerson.Username) {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "User already exist"})
 		return
 	}
 
+	// Invalid Date of Birth
 	err := isValidDoB(newPerson.DateOfBirth)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
+	// Add the new person to the db
 	err = models.SetNewPerson(newPerson)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 	}
 
-	// Add the new person to the slice.
 	c.IndentedJSON(http.StatusNoContent, newPerson)
 }
 
@@ -116,25 +140,60 @@ func exist(username string) bool{
 	return len(newP.Username) != 0
 }
 
+func isLetter(s string) bool {
+	for _, r := range s {
+		if !unicode.IsLetter(r) {
+			return false
+		}
+	}
+	return true
+}
 
-func isValidDoB(dateOfBirthday string) error {
-	layout := "2006-01-02"
+func daysToBirthday(dateOfBirth string) (int, error){
+	today := time.Now()
+
+	// parsing birthday the string into date
+	date, err := parseDate(dateOfBirth)
+	if err != nil {
+		return -1, err
+	}
+	// creating new date based on user birthday in the current year
+	// if the birthday is before the current date, change to next year
+	birthday := time.Date(today.Year(), date.Month(), date.Day(), 23, 59, 59, 0, time.UTC)
+	if birthday.Before(today) {
+		birthday = time.Date(today.Year()+1, date.Month(), date.Day(), 23, 59, 59, 0, time.UTC)
+	}
+	// if the birthday still this year, calculate no need to increment one year
+	daysToBirthday := int(birthday.Sub(today).Hours()/24)
+	return daysToBirthday, err
+}
+
+// validate if date is in the correct format
+func isValidDoB(dateOfBirth string) error {
 	today := time.Now()
 
 	// Validating if the provided date is defined as expected YYYY-MM-DD
-	t, err := time.Parse(layout, dateOfBirthday)
+	date, err := parseDate(dateOfBirth)
 	if err != nil {
-		return errors.New("Incorrect date format, expected YYYY-MM-DD")
+		return err
 	}
 
-	fmt.Println(t)
-	fmt.Println(today)
 	// If today date is not "after" the provided date, than error
-	if !today.After(t) {
+	if !today.After(date) {
 		return errors.New("Invalid Date of Birth, date must be not greater than today")
 	}
 
 	return err
 }
 
+func parseDate(dateOfBirth string) (time.Time, error){
+	layout := "2006-01-02"
+
+	// Validating if the provided date is defined as expected YYYY-MM-DD
+	t, err := time.Parse(layout, dateOfBirth)
+	if err != nil {
+		return t, errors.New("Incorrect date format, expected YYYY-MM-DD")
+	}
+	return t, nil
+}
 
