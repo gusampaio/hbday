@@ -14,7 +14,7 @@ image:
 env:
   POSTGRES_USER: gusampaio
   POSTGRES_PASSWORD: gusampaio_pass
-  POSTGRES_DB: hbday_d
+  POSTGRES_DB: hbday_db
   DATABASE_HOST: localhost
 
 nameOverride: "hbdayapp"

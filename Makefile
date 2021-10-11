@@ -15,5 +15,5 @@ push: build
 	docker login
 	docker push $(DOCKER_REPO):$(DOCKER_TAG)
 
-deploy: push
+deploy:
 	helm install hbday backend-chart --values backend-chart/values.yaml ||  helm upgrade hbday backend-chart --values backend-chart/values.yaml
