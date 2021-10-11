@@ -76,7 +76,7 @@ $ curl http://localhost:8080/hello/<username>
 - [helm](https://helm.sh/docs/intro/install/) Installed on your local machine
 - [go](https://golang.org/doc/install) Installed on your local machine
 
-### In order to deploy this application on AWS, I expect:
+### In order to deploy this application on AWS is expected that you have:
 - A running [EKS](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html) cluster
 - [Network Load Balancer with the NGINX Ingress Controller on Amazon EKS](https://aws.amazon.com/blogs/opensource/network-load-balancer-nginx-ingress-controller-eks/) configured
 - [RDS Postgres](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_GettingStarted.CreatingConnecting.PostgreSQL.html) database already running with DB `hbday_db`
