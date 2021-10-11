@@ -5,23 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 	"hbday/web-service-gin/models"
 	"net/http"
+	"os"
 	"time"
-	_ "github.com/lib/pq"
 	"unicode"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "gusampaio"
-	password = "gusampaio_pass"
-	dbname   = "hbday_db"
+var (
+	host     = os.Getenv("DATABASE_HOST")
+	user     = os.Getenv("POSTGRES_USER")
+	password = os.Getenv("POSTGRES_PASSWORD")
+	dbname   = os.Getenv("POSTGRES_DB")
 )
 
 func main() {
-	connectDb()
+	ConnectDb()
 	// close database
 	defer models.DB.Close()
 
@@ -32,10 +32,10 @@ func main() {
 	router.Run("0.0.0.0:8080") //nolint:errcheck
 }
 
- func connectDb() {
+ func ConnectDb() {
 	 var err error
 	 // connection string
-	 psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	 psqlconn := fmt.Sprintf("host=%s port=5432 dbname=%s user=%s  password=%s sslmode=disable", host, dbname, user, password)
 
 	 // open database
 	 models.DB, err = sql.Open("postgres", psqlconn)
@@ -73,7 +73,7 @@ func getPersonByUsername(c *gin.Context) {
 	}
 
 	// Retrieving username in the database
-	newP, err := models.GetPerson(username)
+	newP, err := models.GetUser(username)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -97,7 +97,7 @@ func getPersonByUsername(c *gin.Context) {
 
 // postPerson adds a person from JSON received in the request body.
 func postPerson(c *gin.Context) {
-	var newPerson models.Person
+	var newPerson models.User
 
 	// Call BindJSON to bind the received JSON to
 	// newPerson.
@@ -115,7 +115,7 @@ func postPerson(c *gin.Context) {
 
 	// User already exist
 	if exist(newPerson.Username) {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "User already exist"})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "User already exist"})
 		return
 	}
 
@@ -127,7 +127,7 @@ func postPerson(c *gin.Context) {
 	}
 
 	// Add the new person to the db
-	err = models.SetNewPerson(newPerson)
+	err = models.SetNewUser(newPerson)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 	}
@@ -136,7 +136,7 @@ func postPerson(c *gin.Context) {
 }
 
 func exist(username string) bool{
-	newP, _ := models.GetPerson(username)
+	newP, _ := models.GetUser(username)
 	return len(newP.Username) != 0
 }
 

@@ -8,6 +8,7 @@ services:
       - POSTGRES_PASSWORD=gusampaio_pass
       - POSTGRES_DB=hbday_db
       - DATABASE_HOST=localhost
+      - DATABASE_PORT=5432
     ports:
       - '5432:5432'
     volumes:
@@ -15,6 +16,12 @@ services:
 
   app:
     container_name: hbday_app
+    environment:
+      - POSTGRES_USER=gusampaio
+      - POSTGRES_PASSWORD=gusampaio_pass
+      - POSTGRES_DB=hbday_db
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
     build: .
     ports:
       - 8080:8080
@@ -22,10 +29,3 @@ services:
 
 volumes:
   database_postgres:
-
-
-# Networks to be created to facilitate communication between containers
-networks:
-  fullstack:
-  local:
-    driver: bridge
